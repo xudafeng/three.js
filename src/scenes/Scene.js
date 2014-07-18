@@ -12,7 +12,6 @@ THREE.Scene = function () {
 	this.autoUpdate = true; // checked by the renderer
 	this.matrixAutoUpdate = false;
 
-	this.__objects = [];
 	this.__lights = [];
 
 	this.__objectsAdded = [];
@@ -38,26 +37,24 @@ THREE.Scene.prototype.__addObject = function ( object ) {
 
 		}
 
-	} else if ( !( object instanceof THREE.Camera || object instanceof THREE.Bone ) ) {
+	} else if ( ! ( object instanceof THREE.Camera || object instanceof THREE.Bone ) ) {
 
-		if ( this.__objects.indexOf( object ) === - 1 ) {
+		this.__objectsAdded.push( object );
 
-			this.__objects.push( object );
-			this.__objectsAdded.push( object );
+		// check if previously removed
 
-			// check if previously removed
+		var i = this.__objectsRemoved.indexOf( object );
 
-			var i = this.__objectsRemoved.indexOf( object );
+		if ( i !== - 1 ) {
 
-			if ( i !== -1 ) {
-
-				this.__objectsRemoved.splice( i, 1 );
-
-			}
+			this.__objectsRemoved.splice( i, 1 );
 
 		}
 
 	}
+
+	this.dispatchEvent( { type: 'objectAdded', object: object } );
+	object.dispatchEvent( { type: 'addedToScene', scene: this } );
 
 	for ( var c = 0; c < object.children.length; c ++ ) {
 
@@ -73,34 +70,40 @@ THREE.Scene.prototype.__removeObject = function ( object ) {
 
 		var i = this.__lights.indexOf( object );
 
-		if ( i !== -1 ) {
+		if ( i !== - 1 ) {
 
 			this.__lights.splice( i, 1 );
 
 		}
 
-	} else if ( !( object instanceof THREE.Camera ) ) {
+		if ( object.shadowCascadeArray ) {
 
-		var i = this.__objects.indexOf( object );
+			for ( var x = 0; x < object.shadowCascadeArray.length; x ++ ) {
 
-		if( i !== -1 ) {
-
-			this.__objects.splice( i, 1 );
-			this.__objectsRemoved.push( object );
-
-			// check if previously added
-
-			var ai = this.__objectsAdded.indexOf( object );
-
-			if ( ai !== -1 ) {
-
-				this.__objectsAdded.splice( ai, 1 );
+				this.__removeObject( object.shadowCascadeArray[ x ] );
 
 			}
 
 		}
 
+	} else if ( ! ( object instanceof THREE.Camera ) ) {
+
+		this.__objectsRemoved.push( object );
+
+		// check if previously added
+
+		var i = this.__objectsAdded.indexOf( object );
+
+		if ( i !== - 1 ) {
+
+			this.__objectsAdded.splice( i, 1 );
+
+		}
+
 	}
+
+	this.dispatchEvent( { type: 'objectRemoved', object: object } );
+	object.dispatchEvent( { type: 'removedFromScene', scene: this } );
 
 	for ( var c = 0; c < object.children.length; c ++ ) {
 
@@ -114,7 +117,7 @@ THREE.Scene.prototype.clone = function ( object ) {
 
 	if ( object === undefined ) object = new THREE.Scene();
 
-	THREE.Object3D.prototype.clone.call(this, object);
+	THREE.Object3D.prototype.clone.call( this, object );
 
 	if ( this.fog !== null ) object.fog = this.fog.clone();
 	if ( this.overrideMaterial !== null ) object.overrideMaterial = this.overrideMaterial.clone();

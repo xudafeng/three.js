@@ -1,17 +1,15 @@
 Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 
 	var container = new UI.Panel();
-	container.setBorderTop( '1px solid #ccc' );
-	container.setPaddingTop( '10px' );
 
 	var geometry = object.geometry;
 
 	// radius
 
 	var radiusRow = new UI.Panel();
-	var radius = new UI.Number( geometry.radius ).onChange( update );
+	var radius = new UI.Number( geometry.parameters.radius ).onChange( update );
 
-	radiusRow.add( new UI.Text( 'Radius' ).setWidth( '90px' ).setColor( '#666' ) );
+	radiusRow.add( new UI.Text( 'Radius' ).setWidth( '90px' ) );
 	radiusRow.add( radius );
 
 	container.add( radiusRow );
@@ -19,9 +17,9 @@ Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 	// tube
 
 	var tubeRow = new UI.Panel();
-	var tube = new UI.Number( geometry.tube ).onChange( update );
+	var tube = new UI.Number( geometry.parameters.tube ).onChange( update );
 
-	tubeRow.add( new UI.Text( 'Tube' ).setWidth( '90px' ).setColor( '#666' ) );
+	tubeRow.add( new UI.Text( 'Tube' ).setWidth( '90px' ) );
 	tubeRow.add( tube );
 
 	container.add( tubeRow );
@@ -29,9 +27,9 @@ Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 	// radialSegments
 
 	var radialSegmentsRow = new UI.Panel();
-	var radialSegments = new UI.Integer( geometry.radialSegments ).setRange( 1, Infinity ).onChange( update );
+	var radialSegments = new UI.Integer( geometry.parameters.radialSegments ).setRange( 1, Infinity ).onChange( update );
 
-	radialSegmentsRow.add( new UI.Text( 'Radial segments' ).setWidth( '90px' ).setColor( '#666' ) );
+	radialSegmentsRow.add( new UI.Text( 'Radial segments' ).setWidth( '90px' ) );
 	radialSegmentsRow.add( radialSegments );
 
 	container.add( radialSegmentsRow );
@@ -39,9 +37,9 @@ Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 	// tubularSegments
 
 	var tubularSegmentsRow = new UI.Panel();
-	var tubularSegments = new UI.Integer( geometry.tubularSegments ).setRange( 1, Infinity ).onChange( update );
+	var tubularSegments = new UI.Integer( geometry.parameters.tubularSegments ).setRange( 1, Infinity ).onChange( update );
 
-	tubularSegmentsRow.add( new UI.Text( 'Tubular segments' ).setWidth( '90px' ).setColor( '#666' ) );
+	tubularSegmentsRow.add( new UI.Text( 'Tubular segments' ).setWidth( '90px' ) );
 	tubularSegmentsRow.add( tubularSegments );
 
 	container.add( tubularSegmentsRow );
@@ -49,9 +47,9 @@ Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 	// arc
 
 	var arcRow = new UI.Panel();
-	var arc = new UI.Number( geometry.arc ).onChange( update );
+	var arc = new UI.Number( geometry.parameters.arc ).onChange( update );
 
-	arcRow.add( new UI.Text( 'Arc' ).setWidth( '90px' ).setColor( '#666' ) );
+	arcRow.add( new UI.Text( 'Arc' ).setWidth( '90px' ) );
 	arcRow.add( arc );
 
 	container.add( arcRow );
@@ -60,8 +58,6 @@ Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 	//
 
 	function update() {
-
-		delete object.__webglInit; // TODO: Remove hack (WebGLRenderer refactoring)
 
 		object.geometry.dispose();
 
@@ -73,6 +69,7 @@ Sidebar.Geometry.TorusGeometry = function ( signals, object ) {
 			arc.getValue()
 		);
 
+		object.geometry.buffersNeedUpdate = true;
 		object.geometry.computeBoundingSphere();
 
 		signals.objectChanged.dispatch( object );

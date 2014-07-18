@@ -2,17 +2,21 @@ Sidebar.Scene = function ( editor ) {
 
 	var signals = editor.signals;
 
-	var container = new UI.Panel();
-	container.setPadding( '10px' );
-	container.setBorderTop( '1px solid #ccc' );
+	var container = new UI.CollapsiblePanel();
 
-	container.add( new UI.Text( 'SCENE' ).setColor( '#666' ) );
-	container.add( new UI.Break(), new UI.Break() );
+	container.addStatic( new UI.Text( 'SCENE' ) );
+	container.add( new UI.Break() );
 
-	var outliner = new UI.FancySelect().setWidth( '100%' ).setHeight('140px').setColor( '#444' ).setFontSize( '12px' )
+	var ignoreObjectSelectedSignal = false;
+
+	var outliner = new UI.FancySelect().setId( 'outliner' );
 	outliner.onChange( function () {
 
+		ignoreObjectSelectedSignal = true;
+
 		editor.selectById( parseInt( outliner.getValue() ) );
+
+		ignoreObjectSelectedSignal = false;
 
 	} );
 	container.add( outliner );
@@ -47,7 +51,7 @@ Sidebar.Scene = function ( editor ) {
 
 	} );
 
-	fogTypeRow.add( new UI.Text( 'Fog' ).setWidth( '90px' ).setColor( '#666' ) );
+	fogTypeRow.add( new UI.Text( 'Fog' ).setWidth( '90px' ) );
 	fogTypeRow.add( fogType );
 
 	container.add( fogTypeRow );
@@ -64,7 +68,7 @@ Sidebar.Scene = function ( editor ) {
 
 	} );
 
-	fogColorRow.add( new UI.Text( 'Fog color' ).setWidth( '90px' ).setColor( '#666' ) );
+	fogColorRow.add( new UI.Text( 'Fog color' ).setWidth( '90px' ) );
 	fogColorRow.add( fogColor );
 
 	container.add( fogColorRow );
@@ -76,7 +80,7 @@ Sidebar.Scene = function ( editor ) {
 
 	var fogNear = new UI.Number( 1 ).setWidth( '60px' ).setRange( 0, Infinity ).onChange( updateFogParameters );
 
-	fogNearRow.add( new UI.Text( 'Fog near' ).setWidth( '90px' ).setColor( '#666' ) );
+	fogNearRow.add( new UI.Text( 'Fog near' ).setWidth( '90px' ) );
 	fogNearRow.add( fogNear );
 
 	container.add( fogNearRow );
@@ -88,7 +92,7 @@ Sidebar.Scene = function ( editor ) {
 
 	var fogFar = new UI.Number( 5000 ).setWidth( '60px' ).setRange( 0, Infinity ).onChange( updateFogParameters );
 
-	fogFarRow.add( new UI.Text( 'Fog far' ).setWidth( '90px' ).setColor( '#666' ) );
+	fogFarRow.add( new UI.Text( 'Fog far' ).setWidth( '90px' ) );
 	fogFarRow.add( fogFar );
 
 	container.add( fogFarRow );
@@ -100,36 +104,12 @@ Sidebar.Scene = function ( editor ) {
 
 	var fogDensity = new UI.Number( 0.00025 ).setWidth( '60px' ).setRange( 0, 0.1 ).setPrecision( 5 ).onChange( updateFogParameters );
 
-	fogDensityRow.add( new UI.Text( 'Fog density' ).setWidth( '90px' ).setColor( '#666' ) );
+	fogDensityRow.add( new UI.Text( 'Fog density' ).setWidth( '90px' ) );
 	fogDensityRow.add( fogDensity );
 
 	container.add( fogDensityRow );
 
 	//
-
-	var getObjectType = function ( object ) {
-
-		var objects = {
-
-			'Scene': THREE.Scene,
-			'PerspectiveCamera': THREE.PerspectiveCamera,
-			'AmbientLight': THREE.AmbientLight,
-			'DirectionalLight': THREE.DirectionalLight,
-			'HemisphereLight': THREE.HemisphereLight,
-			'PointLight': THREE.PointLight,
-			'SpotLight': THREE.SpotLight,
-			'Mesh': THREE.Mesh,
-			'Object3D': THREE.Object3D
-
-		};
-
-		for ( var type in objects ) {
-
-			if ( object instanceof objects[ type ] ) return type;
-
-		}
-
-	}
 
 	var refreshFogUI = function () {
 
@@ -147,18 +127,35 @@ Sidebar.Scene = function ( editor ) {
 	signals.sceneGraphChanged.add( function () {
 
 		var scene = editor.scene;
+		var sceneType = editor.getObjectType( scene );
 
-		var options = {};
+		var options = [];
 
-		options[ scene.id ] = scene.name + ' <span style="color: #aaa">- ' + getObjectType( scene ) + '</span>';
+		options.push( { value: scene.id, html: '<span class="type ' + sceneType + '"></span> ' + scene.name } );
 
 		( function addObjects( objects, pad ) {
 
 			for ( var i = 0, l = objects.length; i < l; i ++ ) {
 
 				var object = objects[ i ];
+				var objectType = editor.getObjectType( object );
 
-				options[ object.id ] = pad + object.name + ' <span style="color: #aaa">- ' + getObjectType( object ) + '</span>';
+				var html = pad + '<span class="type ' + objectType + '"></span> ' + object.name;
+
+				if ( object instanceof THREE.Mesh ) {
+
+					var geometry = object.geometry;
+					var material = object.material;
+
+					var geometryType = editor.getGeometryType( geometry );
+					var materialType = editor.getMaterialType( material );
+
+					html += ' <span class="type ' + geometryType + '"></span> ' + geometry.name;
+					html += ' <span class="type ' + materialType + '"></span> ' + material.name;
+
+				}
+
+				options.push( { value: object.id, html: html } );
 
 				addObjects( object.children, pad + '&nbsp;&nbsp;&nbsp;' );
 
@@ -202,6 +199,8 @@ Sidebar.Scene = function ( editor ) {
 	} );
 
 	signals.objectSelected.add( function ( object ) {
+
+		if ( ignoreObjectSelectedSignal === true ) return;
 
 		outliner.setValue( object !== null ? object.id : null );
 
